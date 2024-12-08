@@ -17,7 +17,7 @@
             padding: 0;
         }
 
-        .login-wrapper {
+        .signup-wrapper {
             width: 100vw;
             height: 100vh;
             display: flex;
@@ -27,7 +27,7 @@
             background-color: #ffffff;
         }
 
-        .login-container {
+        .signup-container {
             width: 30rem;
             height: fit-content;
             padding: 1rem 2rem;
@@ -65,7 +65,7 @@
             box-shadow: 0 5px 5px #ff62002e;
         }
 
-        #login-submit{
+        #signup-submit{
             background-color: #FF6200;
             color: white;
             font-weight: 600;
@@ -73,93 +73,124 @@
             margin: 1rem 0;
         }
 
-        #login-submit:hover{
+        #signup-submit:hover{
             box-shadow: 0 5px 15px #ff620066;
         }
 
     </style>
 </head>
 <body>
-    <article class="login-wrapper">
-        <section class="login-container">
-            <form class="login-signup-form" id="login-form">
+    <article class="signup-wrapper">
+        <section class="signup-container">
+            <form class="login-signup-form" id="signup-form">
 
-                <h1 class="login-signup-header" >Login</h1>
+                <h1 class="login-signup-header" >Sign Up</h1>
                 
                 <!-- Email input field -->
                 <div class="form-floating col-12">
-                    <input type="text" id="login-email" name="login-email" class="form-control rounded-pill"
+                    <input type="text" id="signup-email" name="signup-email" class="form-control rounded-pill"
                     placeholder="Enter email">
-                    <label for="login-username">Email</label>
+                    <label for="signup-username">Email</label>
                     <i class="fa-solid fa-user"></i>
                 </div>
     
                 <!-- Password input field -->
                 <div class="form-floating col-12">
-                    <input type="password" id="login-password" name="login-password" class="form-control rounded-pill"
+                    <input type="password" id="signup-password" name="signup-password" class="form-control rounded-pill"
                     placeholder="Enter password">
-                    <label for="login-password">Password</label>
+                    <label for="signup-password">Password</label>
                     <i class="fa-solid fa-lock"></i>
+                </div>
+
+                <!-- First Name input Field -->
+                <div class="form-floating col-12">
+                    <input type="text" id="signup-first-name" name="signup-first-name" class="form-control rounded-pill"
+                    placeholder="Enter first name">
+                    <label for="signup-first-name">First Name</label>
+                    <i class="fa-solid fa-user"></i>
+                </div>
+
+                <!-- Last Name input Field -->
+                <div class="form-floating col-12">
+                    <input type="text" id="signup-last-name" name="signup-last-name" class="form-control rounded-pill"
+                    placeholder="Enter last name">
+                    <label for="signup-last-name">Last Name</label>
+                    <i class="fa-solid fa-user"></i>
                 </div>
     
                 <!-- Validation Error message -->
                 <p class="loginsignup-validation-error" id="login-validation-error" style="display: none;">Error Message</p>
                 
                 <!-- Login button -->
-                <button type="submit" id="login-submit" class="login-signup-buttons btn rounded-pill col-12">Log In</button>
+                <button type="submit" id="signup-submit" class="login-signup-buttons btn rounded-pill col-12">Sign Up</button>
     
                 <!-- Remember me and Forget password links -->
                 <p id="login-forget-password" onclick="showPopUp('edit-password-popup')" style="display: none;">Forget Password?</p>
                 
                 <!-- Signup link -->
                 <div class="login-signup-link">
-                    <p>Don't have an Rental account? <a href="../login-signup-pages/signup.html" id="signup-link">Sign up</a></p>
+                    <p>Already have an Rental account? <a href="./index.html" id="signup-link">Login</a></p>
                 </div>
         </section>
 
         <script>
             
-            const loginForm = document.getElementById('login-form');
-            document.getElementById('login-submit').addEventListener('click', async (e) => {
+            const signupForm = document.getElementById('signup-form');
+            document.getElementById('signup-submit').addEventListener('click', async (e) => {
                 e.preventDefault();
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+                const firstName = document.getElementById('signup-first-name').value;
+                const lastName = document.getElementById('signup-last-name').value;
 
-                // Validation
-                if(email === '' || password === ''){
+                // Validation email and password and first name and last name
+                if(email === '' || password === '' || firstName === '' || lastName === ''){
                     alert('Please fill in all fields');
                     return;
                 }
+
+                // Validate email format
+                const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+                if(!emailPattern.test(email)){
+                    alert('Invalid email format');
+                    return;
+                }
+
+                // Validate password length
                 else if (password.length < 6){
                     alert('Password must be at least 6 characters');
                     return;
                 }
 
-                // Login user
-                const response = await fetch('http://localhost:5000/authenticate/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email, 
-                        password: password})
-                })
-                console.log(response);
-                
-                if(response.status === 200){
-                    const data = await response.json(); // Get the data
-                    console.log(data);
+                // signup user
+                try {
+                    const response = await fetch('http://localhost:5000/authenticate/signup', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email,
+                            password,
+                            firstName,
+                            lastName
+                        })
+                    });
+                    if (response.status === 201) {
+                        alert('Signup successful');
 
-                    // Save the data in session storage
-                    sessionStorage.setItem('user', JSON.stringify(data));
-                    alert('Login successful');
-                    window.location.href = './home.html';
-                }
-                else{
-                    alert('Login failed');
-                }
+                        // Save the data in session storage
+                        sessionStorage.setItem('user', JSON.stringify(data));
+                        alert('Login successful');
+                        window.location.href = './home.html';
 
+                    } else {
+                        alert('Failed to signup');
+                    }
+                } catch (error) {
+                    console.error('Error signing up:', error);
+                    alert('An error occurred while signing up');
+                }
             });
         </script>
         

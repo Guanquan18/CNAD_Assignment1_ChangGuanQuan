@@ -113,7 +113,7 @@
                 
                 <!-- Signup link -->
                 <div class="login-signup-link">
-                    <p>Don't have an Rental account? <a href="../login-signup-pages/signup.html" id="signup-link">Sign up</a></p>
+                    <p>Don't have an Rental account? <a href="./signup.html" id="signup-link">Sign up</a></p>
                 </div>
         </section>
 
@@ -125,39 +125,59 @@
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
 
-                // Validation
+                // Validation email and password
                 if(email === '' || password === ''){
                     alert('Please fill in all fields');
                     return;
                 }
+
+                // Validate email format
+                const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+                if(!emailPattern.test(email)){
+                    alert('Invalid email format');
+                    return;
+                }
+
+                // Validate password length
                 else if (password.length < 6){
                     alert('Password must be at least 6 characters');
                     return;
                 }
 
                 // Login user
-                const response = await fetch('http://localhost:5000/authenticate/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email, 
-                        password: password})
-                })
-                console.log(response);
-                
-                if(response.status === 200){
-                    const data = await response.json(); // Get the data
-                    console.log(data);
-
-                    // Save the data in session storage
-                    sessionStorage.setItem('user', JSON.stringify(data));
-                    alert('Login successful');
-                    window.location.href = './home.html';
-                }
-                else{
-                    alert('Login failed');
+                try{
+                    const response = await fetch('http://localhost:5000/authenticate/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: email, 
+                            password: password})
+                    })
+                    console.log(response);
+                    
+                    if(response.status === 200){
+                        const data = await response.json(); // Get the data
+                        console.log(data);
+    
+                        // Save the data in session storage
+                        sessionStorage.setItem('user', JSON.stringify(data));
+                        alert('Login successful');
+                        window.location.href = './home.html';
+                    }
+                    else if (response.status === 404){
+                        alert('User not found. Please signup.');
+                    }
+                    else if (response.status === 401){
+                        alert('Invalid password');
+                    }
+                    else{
+                        alert('Login failed');
+                    }
+                }catch(error){
+                    console.error('Error logging in:', error);
+                    alert('An error occurred while logging in');
                 }
 
             });
