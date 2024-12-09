@@ -171,12 +171,12 @@
         
         <div class="form-floating col-12">
             <input type="datetime-local" id="startDate" class="form-control">
-            <label for="startTime">Start Time:</label>    
+            <label for="startTime">Start Date:</label>    
         </div>
 
         <div class="form-floating col-12">
             <input type="datetime-local" id="endDate" class="form-control">
-            <label for="endTime">End Time:</label>
+            <label for="endTime">End Date:</label>
         </div>
 
         <button id="search-vehicle-button" class="btn btn-primary" onclick="searchVehicles()">Search</button>
@@ -215,6 +215,10 @@
             // Validate the time range
             if (!startDate || !endDate) {
                 alert("Please select a valid time range.");
+                return;
+            }
+            else if (new Date(startDate) < new Date()) {
+                alert("Start time must be in the future.");
                 return;
             }
             else if (new Date(startDate) >= new Date(endDate)) {
