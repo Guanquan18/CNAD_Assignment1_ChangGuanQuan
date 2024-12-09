@@ -176,16 +176,15 @@
                             lastName
                         })
                     });
+                    const data = await response.json(); // Get the data
                     if (response.status === 201) {
                         alert('Signup successful');
-
-                        // Save the data in session storage
+                        console.log(data);
                         sessionStorage.setItem('user', JSON.stringify(data));
-                        alert('Login successful');
                         window.location.href = './home.html';
 
                     } else {
-                        alert('Failed to signup');
+                        alert(data.Message);
                     }
                 } catch (error) {
                     console.error('Error signing up:', error);
