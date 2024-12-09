@@ -172,22 +172,14 @@ func signUpUser(w http.ResponseWriter, r *http.Request) {
 
     // Check the response from the external service
     if resp.StatusCode == http.StatusOK {
+
         // If user exists, return conflict
         w.Header().Set("Content-Type", "application/json")
         w.WriteHeader(http.StatusConflict) // 409 Conflict
         json.NewEncoder(w).Encode(ErrorResponse{Message: "User already exists"})
         return
+
     } else if resp.StatusCode == http.StatusNotFound {
-        // If user doesn't exist, proceed with signup logic
-        db, err := sql.Open("mysql", "root:S10257825A@tcp(127.0.0.1:3306)/authentication_db")
-        if err != nil {
-            fmt.Println("Error connecting to the database:", err)
-            w.Header().Set("Content-Type", "application/json")
-            w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
-            json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
-            return
-        }
-        defer db.Close()
 
         // Insert the user into the database by calling another server user.go
         externalServiceURL := "http://localhost:5001/account/create-user"
@@ -244,6 +236,17 @@ func signUpUser(w http.ResponseWriter, r *http.Request) {
             // Hash the password before storing it
             passwordHash := hashPassword(user.Password)
 
+            // If user doesn't exist, proceed with signup logic
+            db, err := sql.Open("mysql", "root:S10257825A@tcp(127.0.0.1:3306)/authentication_db")
+            if err != nil {
+                fmt.Println("Error connecting to the database:", err)
+                w.Header().Set("Content-Type", "application/json")
+                w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
+                json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+                return
+            }
+            defer db.Close()
+
             // Insert the user into the database
             var query string = "INSERT INTO Authentication (UserId, Email, PasswordHash) VALUES (?, ?, ?)"
             _, err = db.Exec(query, userResponse.UserId, user.Email, passwordHash)
@@ -254,6 +257,9 @@ func signUpUser(w http.ResponseWriter, r *http.Request) {
                 json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
                 return
             }
+
+            // Return the created user
+            user := User{UserId: userResponse.UserId, Email: user.Email, PasswordHash: passwordHash}
 
             w.Header().Set("Content-Type", "application/json")
             w.WriteHeader(http.StatusCreated) // 201 Created
