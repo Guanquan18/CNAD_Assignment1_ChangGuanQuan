@@ -14,22 +14,39 @@
 
 ### Microservices Design
 
-- **Modularization**: The application is divided into distinct services to ensure scalability, maintainability, and fault isolation. These services include:
-  - User Service
-  - Reservation Service
-  - Vehicle Service
-  - Billing Service
-  - Authentication Service
+### **Modularization**
+- The system is divided into distinct microservices to improve scalability, maintainability, and fault isolation. Each service is designed with a single responsibility principle, making it easier to develop, test, and deploy independently.
 
-- **Inter-Service Communication**: All services communicate using RESTful APIs, adhering to REST principles for simplicity and reliability.
+   - **User Service**: Manages user registration, membership tiers, and profile updates.
+   - **Reservation Service**: Handles vehicle availability, booking, modifications, and cancellations.
+   - **Vehicle Service**: Manages vehicle details and availability
+   - **Billing Service**: Computes rental costs based on membership tiers, promotions, and rental duration. It handles payment processing and invoice generation.
+   - **Authentication Service**: Provides secure authentication and authorization for user registration, utilizing encrypted passwords.
 
-- **Database Design**: A relational database is used with normalized schemas to reduce redundancy and maintain data integrity.
+### **Inter-Service Communication**
+- All microservices communicate via **RESTful APIs**:
+   
+   - Promotes simplicity and ensures clear documentation.
+   - REST APIs facilitate interoperability, allowing other systems to interact with the services seamlessly.
+   - Each service defines its endpoints and maintains a consistent interface for integration.
 
-- **Scalability**: Services can be scaled independently based on traffic and computational requirements.
+### **Database Design**
+- A **relational database** is used for all services to ensure structured and normalized data storage. Each service interacts with its own database:
+   - **User Database**: Stores user details, membership tiers, and profiles.
+   - **Vehicle Database**: Manages vehicle inventory and status.
+   - **Reservation Database**: Tracks reservation details and policies.
+   - **Billing Database**: Stores invoices, promotions, and transaction records.
 
-- **Security**: Authentication and authorization are implemented using hashed passwords, and sensitive data is protected during transmission and storage.
+### **Scalability**
+- Microservices are independently scalable based on traffic and computational needs:
+   - The Reservation and Billing Services may scale up during peak booking times or promotional periods.
+   - The Vehicle Service may scale to accommodate vehicle availability searching.
+
+### **Security** 
+- Authentication and authorization are implemented using hashed passwords, and sensitive data is protected during transmission and storage.
 
 ---
+
 
 ## Architecture Diagram
 
