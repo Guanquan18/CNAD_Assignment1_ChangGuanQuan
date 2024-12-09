@@ -549,8 +549,6 @@ Request Body:
 
 ## Setup Instructions
 
-## Setup Instructions
-
 ### Starting All Services Simultaneously
 
 1. **Clone the Repository**:
