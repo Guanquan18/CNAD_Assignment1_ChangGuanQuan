@@ -76,6 +76,13 @@
             color: #FF6200;
             font-weight: bold;
         }
+
+        .rental-history-wrapper {
+            width: 60%;
+            height: fit-content;
+            margin: 0 auto;
+            padding-top: 4rem;
+        }
     </style>
 </head>
 <body>
@@ -96,6 +103,10 @@
     <article class="account-content-wrapper">
         <!-- Account details will be loaded here -->
     </article>
+
+    <article class="rental-history-wrapper">
+        <!-- Rental History -->
+    </article>
     
     <script>
         // Redirect to the specified path
@@ -113,6 +124,7 @@
     
             const userId = user.UserId;
             try {
+                // Fetch account details
                 const response = await fetch(`http://localhost:5001/account/${userId}`);
                 const accountDetails = await response.json();
                 if (response.status === 200) {
@@ -120,8 +132,17 @@
                 } else {
                     alert(accountDetails.Message);
                 }
+
+                // Fetch rental history
+                const historyResponse = await fetch(`http://localhost:5003/reservation/history/${userId}?type=history`);
+                const rentalHistory = await historyResponse.json();
+                if (historyResponse.status === 200) {
+                    loadRentalHistory(rentalHistory);
+                } else {
+                    alert('Unable to fetch rental history');
+                }
             } catch (error) {
-                console.error('Error fetching account details:', error);
+                console.log('Error fetching account details:', error);
                 alert('An error occurred while fetching account details');
             }
         }
@@ -143,6 +164,47 @@
             `;
             wrapper.appendChild(accountCard);
         }
+
+        function loadRentalHistory(rentalHistory) {
+            const rentalHistoryContainer = document.querySelector('.rental-history-wrapper');
+            rentalHistoryContainer.innerHTML = ""; // Clear previous content
+
+            const historyCard = document.createElement('div');
+            historyCard.className = 'account-details-card'; // Reusing styling
+            historyCard.innerHTML = `<h2>Rental History</h2>`;
+            console.log(rentalHistory);
+
+            if (Array.isArray(rentalHistory) && rentalHistory.length > 0) {
+                rentalHistory.forEach(history => {
+                    // Handle potential key mismatches
+                    const reservation = history.Reservation || history.reservation;
+                    const vehicle = history.Vehicle || history.vehicle;
+
+                    if (!reservation || !vehicle) {
+                        console.warn('Missing Vehicle or Reservation data:', history);
+                        return; // Skip this item
+                    }
+
+                    const historyDetails = document.createElement('p');
+                    historyDetails.innerHTML = `
+                        <strong>Vehicle:</strong> ${vehicle.make || 'N/A'} ${vehicle.model || 'N/A'}<br>
+                        <strong>Start Date:</strong> ${new Date(reservation.startDate).toLocaleString()}<br>
+                        <strong>End Date:</strong> ${new Date(reservation.endDate).toLocaleString()}<br>
+                        <strong>Location:</strong> ${vehicle.location || 'N/A'}<br>
+                        <strong>Total Cost:</strong> $${reservation.totalCost || '0.00'}<br>
+                        <strong>Status:</strong> ${reservation.status || 'N/A'}<br>
+                    `;
+                    historyCard.appendChild(historyDetails);
+                    historyCard.appendChild(document.createElement('hr'));
+                });
+            } else {
+                historyCard.innerHTML += '<p>No rental history available.</p>';
+            }
+
+            rentalHistoryContainer.appendChild(historyCard);
+        }
+
+
     
         function editAccount(userId, firstName, lastName, email) {
             const wrapper = document.querySelector('.account-content-wrapper');
@@ -195,10 +257,9 @@
                 });
                 const responseData = await response.json();
 
-                if (response.status === 202) {
-                    console.log(responseData);
-                    alert('Account updated successfully');
-                    getAccount(); // Reload the updated account details
+                if (response.status === 200) {
+                    alert(responseData.Message);
+                    getAccount();
                 } else {
                     alert(responseData.Message);
                 }

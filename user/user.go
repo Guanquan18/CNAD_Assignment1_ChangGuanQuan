@@ -36,7 +36,10 @@ func main() {
 	router.HandleFunc("/account/update/{userId}", updateUser).Methods("PUT")
 	router.HandleFunc("/account/check-user/{userId}", checkUserExists).Methods("POST")
 	router.HandleFunc("/account/check-user", checkUserExists).Methods("POST")
+
+	router.HandleFunc("/account/check-reservation-limit/{userId}", checkReservationLimit).Methods("GET")
 	router.HandleFunc("/account/create-user", createUser).Methods("POST")
+	router.HandleFunc("/account/membership-discount/{userId}", getMembershipDiscount).Methods("GET")
 
 	// Set up logging middleware to log requests to the console
 	loggingHandler := handlers.LoggingHandler(os.Stdout, router)
@@ -53,6 +56,139 @@ func main() {
 
 	fmt.Println("Listening at port 5001")
 	log.Fatal(http.ListenAndServe(":5001", recoveryHandler))
+}
+
+func checkReservationLimit(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := vars["userId"]
+
+	// Connect to the database
+	db, err := sql.Open("mysql", "root:S10257825A@tcp(127.0.0.1:3306)/user_db")
+	if err != nil {
+		fmt.Println("Error connecting to the database")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+		return
+	}
+
+	// Query the database for the user with the given ID
+	var query string = `select m.BookingLimit from User u
+						inner join Membership m on u.MembershipTier = m.MembershipTier
+						where u.UserId = ?;`
+
+	results, err := db.Query(query, userId)
+	if err != nil {
+		fmt.Println("Error querying the database", err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500x``
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+		return
+	}
+
+	type BookingLimit struct {
+		BookingLimit int `json:"BookingLimit"`
+	}
+
+	var bookingLimit BookingLimit	// Create a BookingLimit struct to hold the booking limit data
+
+	// Iterate over the query results
+	for results.Next() {
+		err = results.Scan(&bookingLimit.BookingLimit)
+		if err != nil {
+			fmt.Println("Error scanning query results")
+			w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+			return
+		}
+	}
+	db.Close()
+	
+	// Call reservation to check the reservation limit
+	reservationURL := "http://localhost:5003/reservation/check-reservation-limit/" + userId
+	reservationReqBody, err := json.Marshal(map[string]int{"BookingLimit": bookingLimit.BookingLimit})
+	if err != nil {
+		fmt.Println("Error marshalling JSON for reservation service")
+		w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+		return
+	}
+
+	// make a new POST request
+	resp, err := http.Post(reservationURL, "application/json", bytes.NewBuffer(reservationReqBody))
+	if err != nil {
+		fmt.Println("Error calling reservation service", err)
+		w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+		return
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"Message": "Reservation limit is not exceeded"})
+	} else if resp.StatusCode == http.StatusNotAcceptable {
+		w.WriteHeader(http.StatusNotAcceptable)
+		json.NewEncoder(w).Encode(map[string]string{"Message": "Reservation limit is exceeded"})
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+	}
+}
+
+
+func getMembershipDiscount(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userId := vars["userId"]
+
+	// Connect to the database
+	db, err := sql.Open("mysql", "root:S10257825A@tcp(127.0.0.1:3306)/user_db")
+	if err != nil {
+		fmt.Println("Error connecting to the database")
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+		return
+	}
+
+	// Query the database for the user with the given ID
+	var query string = `select m.MembershipTier, m.ReducedHourlyRate from User u
+						inner join Membership m on u.MembershipTier = m.MembershipTier
+						where u.UserId = ?;`
+	results, err := db.Query(query, userId)
+	if err != nil {
+		fmt.Println("Error querying the database", err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
+		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+		return
+	}
+
+	type Membership struct {
+		MembershipTier string `json:"MembershipTier"`
+		ReducedHourlyRate float64 `json:"ReducedHourlyRate"`
+	}
+
+	var membership Membership	// Create a Membership struct to hold the membership data
+
+	// Iterate over the query results
+	for results.Next() {
+		err = results.Scan(&membership.MembershipTier, &membership.ReducedHourlyRate)
+		if err != nil {
+			fmt.Println("Error scanning query results")
+			w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
+			json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+			return
+		}
+	}
+	db.Close()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK) // Set the status code to 200
+	json.NewEncoder(w).Encode(membership)
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +331,7 @@ func checkUserExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("Checking user by email")
 	// Logic for checking user by email (if ID is not provided)
 	
 	// Read the request body
@@ -219,7 +356,7 @@ func checkUserExists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check user by email in the database
+	// Check user by email exist in the database
 	var checkQueryByEmail = "SELECT * FROM User WHERE Email = ?"
 	row := db.QueryRow(checkQueryByEmail, userRequest.Email)
 	var user User
@@ -237,7 +374,11 @@ func checkUserExists(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError) // 500 Internal Server Error
 		json.NewEncoder(w).Encode(ErrorResponse{Message: "Internal server error"})
+		return
 	}
+
+	fmt.Println("User exists: ", user)
+
 	// User exists
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK) // 200 OK
@@ -413,7 +554,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	var query string = "SELECT * from User where UserId = ?;"
 	results, err := db.Query(query, userId)
 	if err != nil {
-		fmt.Println("Error querying the database")
+		fmt.Println("Error querying the database", err)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError) // Set the status code to 500
@@ -421,8 +562,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a User struct to hold the user data
-	var user User
+	var user User	// Create a User struct to hold the user data
 
 	// Iterate over the query results
 	for results.Next() {
@@ -433,7 +573,6 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	db.Close()
 
 	w.Header().Set("Content-Type", "application/json")
