@@ -553,7 +553,7 @@ Request Body:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/electric-car-sharing.git
+   git clone https://github.com/Guanquan18/CNAD_Assignment1_ChangGuanQuan.git
    ```
 
 2. **Database Setup**:
